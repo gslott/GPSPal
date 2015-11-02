@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+        <string-array name="units">
+            <item name="kmph">km/h</item>
+            <item name="mps">m/s</item>
+            <item name="knots">kn</item>
+            <item name="mph">mph</item>
+        </string-array>
+
+    <string-array name="values">
+        <item name="kmph">kmph</item>
+        <item name="mps">mps</item>
+        <item name ="knots">knots</item>
+        <item name="mph">mph</item>
+    </string-array>
+
+
+</resources>
