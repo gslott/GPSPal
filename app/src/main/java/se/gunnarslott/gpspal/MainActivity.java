@@ -134,7 +134,18 @@ public class MainActivity extends ActionBarActivity {
         //Get SharedPreferences
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
 
-        //Recall saved preferred screen rotation
+        //Recall Keep screen on
+        Boolean screen_active = preferences.getBoolean("pref_screen_active", true);
+
+        if (screen_active) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            Log.d(TAG, Boolean.toString(screen_active));
+        }
+        else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            Log.d(TAG, Boolean.toString(screen_active));
+        }
+        //Recall preferred screen rotation
         String screen_rotation = preferences.getString("pref_screen_rotation", "auto");
         Log.d(TAG, screen_rotation);
 
@@ -390,9 +401,6 @@ public class MainActivity extends ActionBarActivity {
         mShareIntent.setType("text/plain");
         mShareIntent.putExtra(Intent.EXTRA_TEXT, R.string.not_found_position_yet);
 
-        //Keep screen lit
-        //TODO ADD SETTING FOR SCREEN
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
 
@@ -456,15 +464,15 @@ public class MainActivity extends ActionBarActivity {
             e.printStackTrace();
         }
 
-        String version = pInfo.versionName;
+        //String version = pInfo.versionName;
 
         String screen_size = getString(R.string.screen_size);
 
         //TODO add references to resources instead of text
-        alertDialog.setTitle("GPS Pal " + version);
+        alertDialog.setTitle("GPS Pal " + pInfo.versionName);
 
 //        alertDialog.setMessage(screen_size + " GPS Pal " + version + " is an application that shows speed, bearing and location. \nIt´s a hobby project, treat it as such.\nwww.gpspal.se");
-        alertDialog.setMessage("GPS Pal " + version + " is an application that shows speed, bearing and location. \nIt´s a hobby project, treat it as such.\nwww.gpspal.se");
+        alertDialog.setMessage("GPS Pal " + pInfo.versionName + " is an application that shows speed, bearing and location. \nIt´s a hobby project, treat it as such.\nwww.gpspal.se");
 
         alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
                 new DialogInterface.OnClickListener() {

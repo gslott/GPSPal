@@ -14,4 +14,9 @@
         android:entryValues="@array/screen_rotation_values"
         android:defaultValue="1" />
 
+    <CheckBoxPreference
+        android:key="pref_screen_active"
+        android:title="@string/pref_screen_active"
+        android:defaultValue="true" />
+
 </PreferenceScreen>
