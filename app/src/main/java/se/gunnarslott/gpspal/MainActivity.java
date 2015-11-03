@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -130,13 +131,31 @@ public class MainActivity extends ActionBarActivity {
         tvBearing = (TextView) findViewById(R.id.tvBearing);
 
 
-        //Recall saved preferred speed unit, km/h is default
+        //Get SharedPreferences
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        String temp = preferences.getString("pref_speed_unit", "kmph");
-        Log.d(TAG, temp);
 
-        assert temp != null;
-        switch (temp) {
+        //Recall saved preferred screen rotation
+        String screen_rotation = preferences.getString("pref_screen_rotation", "auto");
+        Log.d(TAG, screen_rotation);
+
+        switch (screen_rotation) {
+            case "port":
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                break;
+            case "land":
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                break;
+            case "auto":
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
+                break;
+        }
+
+        //Recall preferred speed unit
+        String unit = preferences.getString("pref_speed_unit", "kmph");
+        Log.d(TAG, unit);
+
+        assert unit != null;
+        switch (unit) {
             case "mph":
                 convert = 2.236936;
                         speed_unit = "mph";
@@ -400,12 +419,12 @@ public class MainActivity extends ActionBarActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
 
             Log.d(TAG, "settings");
@@ -417,18 +436,7 @@ public class MainActivity extends ActionBarActivity {
             Log.d(TAG, "showAboutDialog");
             showAboutDialog();
             return true;
-/*
-        } else if (id == R.id.action_send_sms){
 
-            Log.d(TAG, "sendSMS  Lat " + Double.toString(last_known_lat) + " Long " + Double.toString(last_known_long));
-
-            Intent i = new Intent(this, SendSMSActivity.class);
-
-            i.putExtra("lat", last_known_lat);
-            i.putExtra("long", last_known_long);
-
-            startActivity(i);
-*/
         }
 
         return super.onOptionsItemSelected(item);
@@ -452,7 +460,7 @@ public class MainActivity extends ActionBarActivity {
 
         String screen_size = getString(R.string.screen_size);
 
-        //TODO add references to resourses instead of text
+        //TODO add references to resources instead of text
         alertDialog.setTitle("GPS Pal " + version);
 
 //        alertDialog.setMessage(screen_size + " GPS Pal " + version + " is an application that shows speed, bearing and location. \nIt´s a hobby project, treat it as such.\nwww.gpspal.se");
