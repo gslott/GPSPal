@@ -24,6 +24,11 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -33,23 +38,17 @@ import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.support.v4.view.MenuItemCompat;
-//import android.support.v4.view.ActionProvider;
 import android.support.v7.app.ActionBarActivity;
-//import android.app.ActionBar;
-//import android.app.ActionBar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
 import android.support.v7.widget.ShareActionProvider;
-//import android.widget.ShareActionProvider;
 import android.widget.TextView;
 import android.widget.Toast;
 
-//public class MainActivity {
 
-public class MainActivity extends ActionBarActivity {
-//public class MainActivity {
+public class MainActivity extends ActionBarActivity implements SensorEventListener {
 
     private final String TAG = "GPS Pal";
 
@@ -61,11 +60,14 @@ public class MainActivity extends ActionBarActivity {
     private ShareActionProvider mShareActionProvider;
     private Intent mShareIntent;
 
+    private SensorManager mSensorManager;
+    private Sensor mAmbient;
 
     private TextView tvLat;
     private TextView tvLong;
     private TextView tvSpeed;
     private static TextView tvBearing;
+    private boolean nightColors = false;
 
     private String speed_unit = "km/h";
 
@@ -111,6 +113,28 @@ public class MainActivity extends ActionBarActivity {
         ba = null;
 
     }
+    @Override
+    public void onSensorChanged(SensorEvent sensorEvent) {
+
+        float illuminance = sensorEvent.values[0];
+
+        if (illuminance < 150){
+            nightColors = true;
+            Log.d("LJUSSENSOR", Float.toString(illuminance));
+            changeColorMode();
+        } else {
+            Log.d("LJUSSENSOR", Float.toString(illuminance));
+            nightColors = false;
+            changeColorMode();
+        }
+        Log.d("LJUSSENSOR", "Change");
+        //changeColorMode();
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+
+    }
 
     @Override
     protected void onResume() {
@@ -124,6 +148,13 @@ public class MainActivity extends ActionBarActivity {
         //BearingAnimator with handler to handle callbacks with bearing values
         ba = new BearingAnimator();
 
+        // Get an instance of the sensor service, and use that to get an instance of
+        // a particular sensor.
+        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        mAmbient = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        mSensorManager.registerListener(this, mAmbient, SensorManager.SENSOR_DELAY_NORMAL);
+
+
         //Create and find TextViews
         tvLong = (TextView) findViewById(R.id.tvLong);
         tvLat = (TextView) findViewById(R.id.tvLatitude);
@@ -133,6 +164,16 @@ public class MainActivity extends ActionBarActivity {
 
         //Get SharedPreferences
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        //Recall setting for color mode
+        String s = preferences.getString("pref_screen_colormode", "day");
+
+        if (s.equals("day")) {
+            nightColors = false;
+        } else if (s.equals("night")){
+            nightColors = true;
+        }
+        changeColorMode();
 
         //Recall Keep screen on
         Boolean screen_active = preferences.getBoolean("pref_screen_active", true);
@@ -449,6 +490,31 @@ public class MainActivity extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+    private void changeColorMode(){
+
+        if (nightColors) {
+            getWindow().getDecorView().setBackgroundColor(Color.BLACK);
+            tvLong.setTextColor(Color.DKGRAY);
+            tvLat.setTextColor(Color.DKGRAY);
+            tvSpeed.setTextColor(Color.DKGRAY);
+            tvBearing.setTextColor(Color.DKGRAY);
+
+            nightColors = false;
+
+        } else {
+
+            getWindow().getDecorView().setBackgroundColor(Color.WHITE);
+            tvLong.setTextColor(Color.BLACK);
+            tvLat.setTextColor(Color.BLACK);
+            tvSpeed.setTextColor(Color.BLACK);
+            tvBearing.setTextColor(Color.BLACK);
+
+            nightColors = true;
+        }
+    }
+
+
 
     private void showAboutDialog() {
 

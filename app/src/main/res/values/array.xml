@@ -26,4 +26,16 @@
         <item name="land">land</item>
     </string-array>
 
+    <string-array name="colormode_options">
+        <item name="auto">Auto</item>
+        <item name="day">Day</item>
+        <item name="night">Night</item>
+    </string-array>
+
+    <string-array name="colormode_values">
+        <item name="auto">auto</item>
+        <item name="day">day</item>
+        <item name="night">night</item>
+    </string-array>
+
 </resources>
