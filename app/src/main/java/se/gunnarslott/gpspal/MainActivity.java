@@ -57,7 +57,6 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
     private static Boolean locationProviderAvalible = false;
     private static Boolean isMoving = false;
 
-    private ShareActionProvider mShareActionProvider;
     private Intent mShareIntent;
 
     private SensorManager mSensorManager;
@@ -68,6 +67,7 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
     private TextView tvSpeed;
     private static TextView tvBearing;
     private boolean nightColors = false;
+    private boolean autoColor = false;
 
     private String speed_unit = "km/h";
 
@@ -77,7 +77,6 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
 
     private double last_known_lat = 0;
     private double last_known_long = 0;
-    //SendSMSActivity sendSmsActivity = new SendSMSActivity();
 
     //Handle callbacks from BearingAnimator reg bearing
     public static final Handler handler = new Handler() {
@@ -108,31 +107,17 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         ll = null;
         lm = null;
 
+        //Remove light sensor listener
+        if (mSensorManager != null){
+            mSensorManager.unregisterListener(this, mAmbient);
+
+        }
+        mSensorManager = null;
+        mAmbient = null;
+
         //Stop and quit BearingAnimator
         ba.quit(true);
         ba = null;
-
-    }
-    @Override
-    public void onSensorChanged(SensorEvent sensorEvent) {
-
-        float illuminance = sensorEvent.values[0];
-
-        if (illuminance < 150){
-            nightColors = true;
-            Log.d("LJUSSENSOR", Float.toString(illuminance));
-            changeColorMode();
-        } else {
-            Log.d("LJUSSENSOR", Float.toString(illuminance));
-            nightColors = false;
-            changeColorMode();
-        }
-        Log.d("LJUSSENSOR", "Change");
-        //changeColorMode();
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
 
     }
 
@@ -148,13 +133,6 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         //BearingAnimator with handler to handle callbacks with bearing values
         ba = new BearingAnimator();
 
-        // Get an instance of the sensor service, and use that to get an instance of
-        // a particular sensor.
-        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        mAmbient = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-        mSensorManager.registerListener(this, mAmbient, SensorManager.SENSOR_DELAY_NORMAL);
-
-
         //Create and find TextViews
         tvLong = (TextView) findViewById(R.id.tvLong);
         tvLat = (TextView) findViewById(R.id.tvLatitude);
@@ -167,12 +145,52 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
 
         //Recall setting for color mode
         String s = preferences.getString("pref_screen_colormode", "day");
+        Log.d(TAG, s);
 
-        if (s.equals("day")) {
-            nightColors = false;
-        } else if (s.equals("night")){
-            nightColors = true;
-        }
+        switch (s) {
+            case "day":
+                nightColors = false;
+                autoColor = false;
+                Log.d(TAG, "Day mode");
+                break;
+
+            case "night":
+                nightColors = true;
+                autoColor = false;
+                Log.d(TAG, "Night mode");
+                break;
+
+            case "auto":
+                mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
+                Log.d(TAG, "Auto mode");
+                if (mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT) != null){
+
+                    mAmbient = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+                    mSensorManager.registerListener(this, mAmbient, SensorManager.SENSOR_DELAY_NORMAL);
+                    nightColors = false;
+                    autoColor = true;
+                    Log.d(TAG, "Light sensor");
+
+                } else {
+                    showToast(getString(R.string.no_sensor_msg));
+                    Log.d(TAG, getString(R.string.no_sensor_msg));
+
+                    nightColors = false;
+                    autoColor = false;
+
+                    Log.d(TAG, "No light sensor");
+
+                    //TODO Fix edit shared preferences
+/*                    SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE).edit();
+                    editor.putString("pref_screen_colormode", "day");
+                    editor.commit();
+*/
+
+                }
+                break;
+        }//Switch
+
         changeColorMode();
 
         //Recall Keep screen on
@@ -180,12 +198,13 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
 
         if (screen_active) {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            Log.d(TAG, Boolean.toString(screen_active));
+            Log.d(TAG, "Keep screen active");
         }
         else {
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             Log.d(TAG, Boolean.toString(screen_active));
         }
+
         //Recall preferred screen rotation
         String screen_rotation = preferences.getString("pref_screen_rotation", "auto");
         Log.d(TAG, screen_rotation);
@@ -206,7 +225,6 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         String unit = preferences.getString("pref_speed_unit", "kmph");
         Log.d(TAG, unit);
 
-        assert unit != null;
         switch (unit) {
             case "mph":
                 convert = 2.236936;
@@ -312,8 +330,11 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
 
                 } else format_long = format_long + "″";
 
-                tvLat.setText("Lat: " + format_lat + lat_suffix);
-                tvLong.setText("Lon: " + format_long + long_suffix);
+                String temp_lat = getString(R.string.etLatitude) + format_lat + lat_suffix;
+                String temp_long = getString(R.string.etLong) + format_long + long_suffix;
+
+                tvLat.setText(temp_lat);
+                tvLong.setText(temp_long);
 
                 //Print speed
                 if (location.hasSpeed()) {
@@ -324,9 +345,11 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
                 //Send bearing to BearingAnimator
                 if (location.hasBearing()) {
                     Log.d(TAG, "hasBearing");
+                    //Can result in NULL pointer exeption when screen rotates, don't know why
                     ba.setNewBearing(location.getBearing());
                 }
             }
+
 
             public void onStatusChanged(String provider, int status, Bundle extras) {
 
@@ -367,6 +390,36 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, ll);
 
 
+    }
+    @Override
+    public void onSensorChanged(SensorEvent sensorEvent) {
+
+        Log.d("Change", "onSensorChanges");
+
+        float illuminance = sensorEvent.values[0];
+
+        if (autoColor) {
+
+            if (illuminance < 150.0) {
+
+                nightColors = true;
+                Log.d("Change", Float.toString(illuminance));
+                changeColorMode();
+
+            } else if (illuminance > 160.0){
+
+                Log.d("Change", Float.toString(illuminance));
+                nightColors = false;
+                changeColorMode();
+            }
+            Log.d(TAG, "Autocolor Change");
+
+        } else Log.d(TAG, "AutoColor false");
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+        Log.d(TAG, "onAccuracyChanged");
     }
 
     private void showToast(String s){
@@ -413,20 +466,22 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         int speed = (int) tempSpeed;
 
        if (!locationProviderAvalible){
-            tvSpeed.setText("(" + String.valueOf(speed) + " " + speed_unit + ")");
+           String temp = "(" + String.valueOf(speed) + " " + speed_unit + ")";
+            tvSpeed.setText(temp);
 
         } else if (speed == 0){
             isMoving = false;
             //Print speed to screen
-            tvSpeed.setText(String.valueOf(speed) + " " + speed_unit);
+           String temp = String.valueOf(speed) + " " + speed_unit;
+            tvSpeed.setText(temp);
 
         } else {
             isMoving = true;
             //Print speed to screen
-            tvSpeed.setText(String.valueOf(speed) + " " + speed_unit);
+           String temp = String.valueOf(speed) + " " + speed_unit;
+            tvSpeed.setText(temp);
 
         }
-        //tvSpeed.setText(String.valueOf(speed) + " " + speed_unit);
 
     }
 
@@ -535,7 +590,8 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         String screen_size = getString(R.string.screen_size);
 
         //TODO add references to resources instead of text
-        alertDialog.setTitle("GPS Pal " + pInfo.versionName);
+        String temp = getString(R.string.app_name) + " " + pInfo.versionName;
+        alertDialog.setTitle(temp);
 
 //        alertDialog.setMessage(screen_size + " GPS Pal " + version + " is an application that shows speed, bearing and location. \nIt´s a hobby project, treat it as such.\nwww.gpspal.se");
         alertDialog.setMessage("GPS Pal " + pInfo.versionName + " is an application that shows speed, bearing and location. \nIt´s a hobby project, treat it as such.\nwww.gpspal.se");
